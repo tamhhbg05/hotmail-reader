@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hotmail Reader</title>
+    <style>
+        /* ----- RESET ----- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 15px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2d8cf0;
+        }
+
+        /* ----- FORM INPUT ----- */
+        .form-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input {
+            flex: 1 1 300px;
+            padding: 12px 15px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus {
+            border-color: #2d8cf0;
+            box-shadow: 0 0 5px rgba(45,140,240,0.3);
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #2d8cf0;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #1a73e8;
+        }
+
+        /* ----- OUTPUT ----- */
+        #output {
+            margin-top: 30px;
+        }
+
+        .mail-card {
+            background: #fff;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+
+        .mail-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .subject {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d8cf0;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+
+        .meta {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .body-preview {
+            font-size: 15px;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .error-box {
+            background: #ffe0e0;
+            border-left: 4px solid #ff4d4f;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            color: #b30000;
+        }
+
+        /* ----- RESPONSIVE ----- */
+        @media (max-width: 600px) {
+            .form-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📧 Hotmail Reader</h2>
+
+        <div class="form-group">
+            <input id="email" placeholder="abc@hotmail.com">
+            <button onclick="readMail()">Đọc thư</button>
+        </div>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        async function readMail() {
+            const email = document.getElementById("email").value;
+            const output = document.getElementById("output");
+            output.innerHTML = "⏳ Đang đọc thư...";
+
+            try {
+                const res = await fetch("/read-email", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({email})
+                });
+
+                if (!res.ok) throw new Error(`HTTP lỗi ${res.status}`);
+
+                const data = await res.json();
+
+                if (data.error) {
+                    output.innerHTML = `<div class='error-box'>❌ ${data.error}</div>`;
+                    return;
+                }
+
+                if (!data.mails || data.mails.length === 0) {
+                    output.innerHTML = `<div class='error-box'>📭 Không có email nào!</div>`;
+                    return;
+                }
+
+                let html = `<h3>Email: ${data.input_email}</h3>`;
+
+                for (let mail of data.mails) {
+                    html += `
+                        <div class="mail-card">
+                            <div class="subject">${mail.subject || "(Không có tiêu đề)"}</div>
+                            <div class="meta">
+                                <b>From:</b> ${mail.from ? mail.from.emailAddress.address : "Unknown"}<br>
+                                <b>Ngày:</b> ${mail.receivedDateTime || "-"}
+                            </div>
+                            <div class="body-preview">${mail.bodyPreview || "(Không có nội dung)"}</div>
+                        </div>
+                    `;
+                }
+
+                output.innerHTML = html;
+
+            } catch (err) {
+                output.innerHTML = `<div class='error-box'>❌ Lỗi: ${err.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
